@@ -2,7 +2,7 @@ name: 'Build'
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   
   workflow_dispatch:
 
@@ -11,6 +11,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: GitHub Slug Action
+        uses: rlespinasse/github-slug-action@3.1.0
+
+      - name: Set variables
+        run: |
+          if [[ "${GITHUB_REF_SLUG}" == main ]]; then
+            echo "CURRENT_ENV=app" >> $GITHUB_ENV
+          else
+            echo "CURRENT_ENV=dev" >> $GITHUB_ENV
+          fi
+
       - name: Checkout
         uses: actions/checkout@v2
 
@@ -44,18 +55,10 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Docker push
-        run: docker push frpol9cacentral.azurecr.io/demo-azure-webapp:latest
+        run: docker push frpol9cacentral.azurecr.io/demo-azure-webapp:${{ env.GITHUB_REF_SLUG_URL }}
 
       - name: Webapp restart
         uses: azure/CLI@v1
         with:
           azcliversion: 2.15.1
-          inlineScript: az webapp restart --name frpol9-demo-azure-webapp-dev-app --resource-group frpol9-demo-azure-webapp-dev-rg
-
-      # - name: Pulumi up
-      #   uses: ./.github/actions/pulumi-up
-      #   with:
-      #     pulumi-azure-storage-account: ${{ secrets.PULUMI_AZURE_STORAGE_ACCOUNT }}
-      #     pulumi-azure-storage-key: ${{ secrets.PULUMI_AZURE_STORAGE_KEY }}
-      #     pulumi-stack: ${{ env.PULUMI_STACK }}
-      #     pulumi-stack-passphrase: ${{ env.PULUMI_STACK_PASSPHRASE }}
+          inlineScript: az webapp restart --name frpol9-demo-azure-webapp-${{ env.CURRENT_ENV }}-app --resource-group frpol9-demo-azure-webapp-${{ env.CURRENT_ENV }}-rg

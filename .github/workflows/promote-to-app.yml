@@ -1,0 +1,41 @@
+name: Promote to approbation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: main
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Docker init
+        run: |
+          docker login -u frpol9cacentral -p ${{ secrets.DOCKER_REGISTRY_PASSWORD }} frpol9cacentral.azurecr.io
+          docker pull frpol9cacentral.azurecr.io/demo-azure-webapp:develop
+          docker tag frpol9cacentral.azurecr.io/demo-azure-webapp:develop frpol9cacentral.azurecr.io/demo-azure-webapp:main
+
+      - name: Merge Fast-Forward to latest build commit
+        run: |
+          git fetch origin ${{ env.COMMIT_SHA }}:develop_tmp
+          git merge --ff develop_tmp
+          git push origin main
+
+      - name: Docker push
+        run: |
+          docker push frpol9cacentral.azurecr.io/demo-azure-webapp:main
+
+      - name: Webapp restart
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.15.1
+          inlineScript: az webapp restart --name frpol9-demo-azure-webapp-app-app --resource-group frpol9-demo-azure-webapp-app-rg

@@ -1,0 +1,47 @@
+name: Promote to prod
+
+on:
+  workflow_dispatch:
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: main
+
+      - name: Compute tag name
+        run: |
+          TAG_NAME=v`TZ=America/New_York date +"%Y-%m-%d-%H-%M-%S"`
+          echo TAG_NAME=$TAG_NAME >> $GITHUB_ENV
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Docker init
+        run: |
+          docker login -u frpol9cacentral -p ${{ secrets.DOCKER_REGISTRY_PASSWORD }} frpol9cacentral.azurecr.io
+          docker pull frpol9cacentral.azurecr.io/demo-azure-webapp:main
+          docker tag frpol9cacentral.azurecr.io/demo-azure-webapp:main frpol9cacentral.azurecr.io/demo-azure-webapp:prod
+
+      - name: Create tag
+        run: |
+          git config user.email "github@ulaval.ca"
+          git config user.name "Github actions"
+          git tag -m "Release to prod" -f ${{ env.TAG_NAME }} ${{ env.COMMIT_SHA }}
+          git push origin ${{ env.TAG_NAME }}
+
+      - name: Docker push
+        run: |
+          docker push frpol9cacentral.azurecr.io/demo-azure-webapp:prod
+
+      - name: Webapp restart
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.15.1
+          inlineScript: az webapp restart --name frpol9-demo-azure-webapp-prod-app --resource-group frpol9-demo-azure-webapp-prod-rg
