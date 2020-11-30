@@ -49,21 +49,21 @@ jobs:
         run: mvn -B compile
 
       - name: Docker build with jib
-        if: env.DO_DEPLOY
+        if: env.DO_DEPLOY=="true"
         run: mvn -B com.google.cloud.tools:jib-maven-plugin:2.6.0:dockerBuild -Dimage=frpol9cacentral.azurecr.io/demo-azure-webapp:${{ env.GITHUB_REF_SLUG_URL }}
 
       - name: Docker login
-        if: env.DO_DEPLOY
+        if: env.DO_DEPLOY=="true"
         run: docker login -u frpol9cacentral -p ${{ secrets.DOCKER_REGISTRY_PASSWORD }} frpol9cacentral.azurecr.io
 
       - name: Azure login
-        if: env.DO_DEPLOY
+        if: env.DO_DEPLOY=="true"
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Docker push
-        if: env.DO_DEPLOY
+        if: env.DO_DEPLOY=="true"
         run: docker push frpol9cacentral.azurecr.io/demo-azure-webapp:${{ env.GITHUB_REF_SLUG_URL }}
 
       - name: Webapp restart
