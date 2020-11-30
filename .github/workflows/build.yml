@@ -38,8 +38,19 @@ jobs:
       - name: Docker login
         run: docker login -u frpol9cacentral -p ${{ secrets.DOCKER_REGISTRY_PASSWORD }} frpol9cacentral.azurecr.io
 
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Docker push
         run: docker push frpol9cacentral.azurecr.io/demo-azure-webapp:latest
+
+      - name: Webapp restart
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.15.1
+          inlineScript: az webapp restart --name frpol9-demo-azure-webapp-dev-app --resource-group frpol9-demo-azure-webapp-dev-rg
 
       # - name: Pulumi up
       #   uses: ./.github/actions/pulumi-up

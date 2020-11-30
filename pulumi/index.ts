@@ -34,7 +34,7 @@ const appServicePlan = new azure.appservice.Plan(appServicePlanName, {
     parent: resourceGroup
 });
 
-const app = new azure.appservice.AppService(appServiceName, {
+const appService = new azure.appservice.AppService(appServiceName, {
     name: appServiceName,
     siteConfig: {
         linuxFxVersion: "DOCKER|frpol9cacentral.azurecr.io/demo-azure-webapp:latest",
@@ -54,4 +54,4 @@ const app = new azure.appservice.AppService(appServiceName, {
     tags: defaultTags,
 });
 
-export const appEndpoint = app.defaultSiteHostname;
+export const appEndpoint = appService.defaultSiteHostname;
