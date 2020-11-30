@@ -19,16 +19,24 @@ jobs:
         with:
           java-version: 1.8
 
+      - name: Cache local maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - run: mvn -version
 
       - name: Compile
         run: mvn -B compile
 
       - name: Docker build with jib
-        run: mvn com.google.cloud.tools:jib-maven-plugin:2.6.0:dockerBuild -Dimage=frpol9cacentral.azurecr.io/demo-azure-webapp:latest
+        run: mvn -B com.google.cloud.tools:jib-maven-plugin:2.6.0:dockerBuild -Dimage=frpol9cacentral.azurecr.io/demo-azure-webapp:latest
 
       - name: Docker login
-        run: docker login -u frpol9cacentral -p ${{ secrets.DOCKER_REGISTRY_PASSWOR }} frpol9cacentral.azurecr.io
+        run: docker login -u frpol9cacentral -p ${{ secrets.DOCKER_REGISTRY_PASSWORD }} frpol9cacentral.azurecr.io
 
       - name: Docker push
         run: docker push frpol9cacentral.azurecr.io/demo-azure-webapp:latest
