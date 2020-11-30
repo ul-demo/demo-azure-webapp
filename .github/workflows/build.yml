@@ -2,7 +2,7 @@ name: 'Build'
 
 on:
   push:
-    branches: [main, develop]
+    branches: ["main", "develop", "features/*", "bugfix/*"]
   
   workflow_dispatch:
 
@@ -18,8 +18,13 @@ jobs:
         run: |
           if [[ "${GITHUB_REF_SLUG}" == main ]]; then
             echo "CURRENT_ENV=app" >> $GITHUB_ENV
+            echo "DO_DEPLOY=true" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF_SLUG}" == develop ]]; then
+            echo "CURRENT_ENV=dev" >> $GITHUB_ENV
+            echo "DO_DEPLOY=true" >> $GITHUB_ENV
           else
             echo "CURRENT_ENV=dev" >> $GITHUB_ENV
+            echo "DO_DEPLOY=false" >> $GITHUB_ENV
           fi
 
       - name: Checkout
@@ -44,20 +49,25 @@ jobs:
         run: mvn -B compile
 
       - name: Docker build with jib
-        run: mvn -B com.google.cloud.tools:jib-maven-plugin:2.6.0:dockerBuild -Dimage=frpol9cacentral.azurecr.io/demo-azure-webapp:latest
+        if: env.DO_DEPLOY
+        run: mvn -B com.google.cloud.tools:jib-maven-plugin:2.6.0:dockerBuild -Dimage=frpol9cacentral.azurecr.io/demo-azure-webapp:${{ env.GITHUB_REF_SLUG_URL }}
 
       - name: Docker login
+        if: env.DO_DEPLOY
         run: docker login -u frpol9cacentral -p ${{ secrets.DOCKER_REGISTRY_PASSWORD }} frpol9cacentral.azurecr.io
 
       - name: Azure login
+        if: env.DO_DEPLOY
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Docker push
+        if: env.DO_DEPLOY
         run: docker push frpol9cacentral.azurecr.io/demo-azure-webapp:${{ env.GITHUB_REF_SLUG_URL }}
 
       - name: Webapp restart
+        if: env.DO_DEPLOY
         uses: azure/CLI@v1
         with:
           azcliversion: 2.15.1
