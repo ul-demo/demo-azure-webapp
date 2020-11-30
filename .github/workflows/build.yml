@@ -1,0 +1,42 @@
+name: 'Build'
+
+on:
+  push:
+    branches: [main]
+  
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 1.8 and Maven
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+
+      - run: mvn -version
+
+      - name: Compile
+        run: mvn -B compile
+
+      - name: Docker build with jib
+        run: mvn com.google.cloud.tools:jib-maven-plugin:2.6.0:dockerBuild -Dimage=frpol9cacentral.azurecr.io/demo-azure-webapp:latest
+
+      - name: Docker login
+        run: docker login -u frpol9cacentral -p ${{ secrets.DOCKER_REGISTRY_PASSWOR }} frpol9cacentral.azurecr.io
+
+      - name: Docker push
+        run: docker push frpol9cacentral.azurecr.io/demo-azure-webapp:latest
+
+      # - name: Pulumi up
+      #   uses: ./.github/actions/pulumi-up
+      #   with:
+      #     pulumi-azure-storage-account: ${{ secrets.PULUMI_AZURE_STORAGE_ACCOUNT }}
+      #     pulumi-azure-storage-key: ${{ secrets.PULUMI_AZURE_STORAGE_KEY }}
+      #     pulumi-stack: ${{ env.PULUMI_STACK }}
+      #     pulumi-stack-passphrase: ${{ env.PULUMI_STACK_PASSPHRASE }}
